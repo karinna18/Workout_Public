@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(see)
   library(shiny)
   library(shinyWidgets)
+  library(DT)
 })
 
 source("w_global.R")
@@ -41,7 +42,7 @@ ui <- fluidPage(
   br(),
   selectInput("place", "Place", choices = c("home", "gym")),
   br(),
-  selectInput("exploration", "Exploration", choices = c("yes", "neutral", "no")),
+  selectInput("exploration", "Exploration", choices = c("yes", "neutral", "no"), selected ="neutral"),
   br(),
   downloadButton(
     "download_workout",
