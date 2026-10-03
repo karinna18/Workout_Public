@@ -11,7 +11,6 @@ library(cli)
 })
 
 # --- CREDENTIALS ---
-
 NOTION_TOKEN <<- Sys.getenv("NOTION_TOKEN")
 MUSCLES_DATABASE_ID <<- "3ed5a4c40d5c803c9be0ed31ca3a1d44"
 EXERCISES_DATABASE_ID <<- "3ed5a4c40d5c80cd8ffbe93a0fc52cf9"
@@ -181,7 +180,9 @@ parse_notion_to_df <- function(pages, label = "Pages") {
     
     
     as_tibble_row(res) %>%
-      mutate(id = p$id, last_edited_time = p$last_edited_time)
+      mutate(id = p$id, 
+             notion_url = p$url,
+             last_edited_time = p$last_edited_time)
   }, .progress = paste("Parsing", label))
 }
 
@@ -312,7 +313,7 @@ exercises <<- all_data$exercises %>%
     })
     
   ) %>%
-  select(exercise, type, equipment, mechanics, level, force, target_muscle, secondary_muscles, enjoyment) %>% 
+  select(exercise, type, equipment, mechanics, level, force, target_muscle, secondary_muscles, enjoyment, weight, notion_url) %>% 
     separate_rows(target_muscle, sep = ",\\s*") %>% left_join(muscles, by = join_by(target_muscle == muscle)) %>%
   mutate(
     level = as.numeric(trimws(sub("-.*", "", level)))

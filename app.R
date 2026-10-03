@@ -26,20 +26,36 @@ options(
 
 ui <- fluidPage(
   theme = bslib::bs_theme(bootswatch = "lux"),
-  selectInput("workout", "Workout", choices = c("Arms & Chest", "Back & Shoulders", "Legs & Butt", "Core")),
+  default_workout <- switch(
+    weekdays(Sys.Date()),
+    "Monday"    = "Legs & Butt",
+    "Tuesday"   = "Abs & Hip flexors",
+    "Wednesday" = "Legs & Butt",
+    "Thursday"  = "Arms & Chest",
+    "Friday"    = "Abs & Hip flexors",
+    "Saturday"  = "Legs & Butt",
+    "Sunday"    = "Back & Shoulders"
+  ),
+  
+  selectInput("workout", "Workout", choices = c("Arms & Chest", "Back & Shoulders", "Legs & Butt", "Core"), selected = default_workout),
   br(),
   selectInput("place", "Place", choices = c("home", "gym")),
   br(),
   selectInput("exploration", "Exploration", choices = c("yes", "neutral", "no")),
   br(),
-  p("Warmups"),
-  tableOutput("warmups_table"),
+  downloadButton(
+    "download_workout",
+    "Save workout"
+  ),
   br(),
   p("Workout"),
-  tableOutput("workout_table"),
+  DT::DTOutput("workout_table"),
+  br(),
+  p("Warmups"),
+  DT::DTOutput("warmups_table"),
   br(),
   p("Stretches"),
-  tableOutput("stretches_table"),
+  DT::DTOutput("stretches_table"),
   br()
   #p("Debug"),
   #tableOutput("debug_exercises")
@@ -77,7 +93,7 @@ server <- function(input, output, session){
     workout = input$workout,
     exploration = input$exploration
   
-  )}
+  ) %>% select(exercise, target_muscle, equipment, mechanics, weight, enjoyment,  notion_url)}
   )
   
   workout_stretches <- reactive({
@@ -124,7 +140,7 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows()
+      bind_rows() %>% select(exercise, target_muscle, equipment, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
   workout_warmups <- reactive({
@@ -173,24 +189,226 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows()
+      bind_rows()%>% select(exercise, target_muscle, equipment, force, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
-  output$warmups_table <- renderTable({
-    workout_warmups() %>% select(exercise, target_muscle, equipment, force, enjoyment) %>% distinct(exercise, .keep_all = TRUE)
+  output$warmups_table <- DT::renderDT({
+    workout_warmups() %>%
+      mutate(
+        exercise = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          notion_url,
+          exercise
+        )
+      ) %>%
+      select(-notion_url) %>%
+      DT::datatable(
+        escape = FALSE
+      ) 
   })
   
-  output$stretches_table <- renderTable({
-    workout_stretches() %>% select(exercise, target_muscle, equipment, enjoyment) %>% distinct(exercise, .keep_all = TRUE)
+  output$stretches_table <- DT::renderDT({
+    workout_stretches() %>%
+      mutate(
+        exercise = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          notion_url,
+          exercise
+        )
+      ) %>%
+      select(-notion_url) %>%
+      DT::datatable(
+        escape = FALSE
+      ) 
   })
     
-  output$workout_table <- renderTable({
-      workout_db() %>% select(exercise, target_muscle, equipment, mechanics, enjoyment)
+  output$workout_table <- DT::renderDT({
+      workout_db()  %>%
+      mutate(
+        exercise = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          notion_url,
+          exercise
+        )
+      ) %>%
+      select(-notion_url) %>%
+      DT::datatable(
+        escape = FALSE
+      )
     })
   
   output$debug_exercises <- renderTable({
-    df_all_exercises() %>% select(exercise,type, equipment, mechanics, target_muscle, enjoyment, muscle_group)
+    df_all_exercises() %>% select(exercise,type, equipment, mechanics, target_muscle, enjoyment, muscle_group, notion_url)
   })
+  
+  #download button
+  make_html_table <- function(df, title = NULL) {
+    
+    # Turn the exercise name into a clickable Notion link.
+    # We do this BEFORE converting the data frame to HTML.
+    if ("notion_url" %in% names(df) && "exercise" %in% names(df)) {
+      
+      df <- df %>%
+        mutate(
+          exercise = ifelse(
+            !is.na(notion_url) & notion_url != "",
+            sprintf(
+              '<a href="%s" target="_blank">%s</a>',
+              notion_url,
+              htmltools::htmlEscape(exercise)
+            ),
+            htmltools::htmlEscape(exercise)
+          )
+        ) %>%
+        select(-notion_url)
+    }
+    
+    # Convert the data frame into an HTML table.
+    table <- htmltools::tags$table(
+      class = "workout-table",
+      htmltools::tags$thead(
+        htmltools::tags$tr(
+          lapply(names(df), function(x) {
+            htmltools::tags$th(x)
+          })
+        )
+      ),
+      htmltools::tags$tbody(
+        lapply(seq_len(nrow(df)), function(i) {
+          htmltools::tags$tr(
+            lapply(df[i, ], function(x) {
+              htmltools::tags$td(
+                htmltools::HTML(as.character(x))
+              )
+            })
+          )
+        })
+      )
+    )
+    
+    if (!is.null(title)) {
+      htmltools::tagList(
+        htmltools::tags$h2(title),
+        table
+      )
+    } else {
+      table
+    }
+  }
+  
+  output$download_workout <- downloadHandler(
+    
+    filename = function() {
+      paste0(
+        "workout_",
+        format(Sys.Date(), "%Y-%m-%d"),
+        ".html"
+      )
+    },
+    
+    content = function(file) {
+      
+      # Grab the CURRENT workout.
+      # This is important: whatever is currently displayed
+      # in the app is what gets saved.
+      workout <- workout_db()
+      
+      # Grab the current warmups and stretches too.
+      warmups <- workout_warmups()
+      stretches <- workout_stretches()
+      
+      
+      # Build the HTML document.
+      page <- htmltools::tags$html(
+        
+        htmltools::tags$head(
+          htmltools::tags$meta(
+            name = "viewport",
+            content = "width=device-width, initial-scale=1"
+          ),
+          
+          htmltools::tags$title(
+            paste("Workout", Sys.Date())
+          ),
+          
+          htmltools::tags$style(
+            htmltools::HTML("
+            body {
+              font-family: -apple-system, BlinkMacSystemFont,
+                         'Segoe UI', sans-serif;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+              line-height: 1.5;
+            }
+
+            h1 {
+              margin-bottom: 5px;
+            }
+
+            h2 {
+              margin-top: 30px;
+            }
+
+            .workout-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+
+            .workout-table th,
+            .workout-table td {
+              padding: 10px 8px;
+              border-bottom: 1px solid #ddd;
+              text-align: left;
+            }
+
+            .workout-table th {
+              font-weight: 600;
+            }
+
+            a {
+              color: #0066cc;
+              text-decoration: underline;
+            }
+          ")
+          )
+        ),
+        
+        htmltools::tags$body(
+          
+          htmltools::tags$h1("Today's Workout"),
+          
+          htmltools::tags$p(
+            format(Sys.Date(), "%A, %d %B %Y")
+          ),
+          make_html_table(
+            warmups,
+            "Warmups"
+          ),
+          
+          make_html_table(
+            workout,
+            "Workout"
+          ),
+          
+          make_html_table(
+            stretches,
+            "Stretches"
+          )
+        )
+      )
+      
+      # Write the finished HTML document to the temporary
+      # file that Shiny provided for the download.
+      htmltools::save_html(
+        page,
+        file
+      )
+    }
+  )
+    
+  
   
 
 }
