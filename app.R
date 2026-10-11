@@ -32,10 +32,10 @@ ui <- fluidPage(
     "Monday"    = "Legs & Butt",
     "Tuesday"   = "Abs & Hip flexors",
     "Wednesday" = "Legs & Butt",
-    "Thursday"  = "Arms & Chest",
+    "Thursday"  = "Back & Shoulders",
     "Friday"    = "Abs & Hip flexors",
     "Saturday"  = "Legs & Butt",
-    "Sunday"    = "Back & Shoulders"
+    "Sunday"    = "Arms & Chest"
   ),
   
   selectInput("workout", "Workout", choices = c("Arms & Chest", "Back & Shoulders", "Legs & Butt", "Core"), selected = default_workout),
@@ -94,7 +94,7 @@ server <- function(input, output, session){
     workout = input$workout,
     exploration = input$exploration
   
-  ) %>% select(exercise, target_muscle, equipment, mechanics, weight, enjoyment,  notion_url)}
+  ) %>% select(exercise, image,  target_muscle, equipment, mechanics, weight, enjoyment,  notion_url)}
   )
   
   workout_stretches <- reactive({
@@ -141,7 +141,7 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows() %>% select(exercise, target_muscle, equipment, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows() %>% select(exercise,image, target_muscle, equipment, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
   workout_warmups <- reactive({
@@ -169,10 +169,10 @@ server <- function(input, output, session){
         available <- preferred
       }
       
-      # We want exactly 2 stretches.
-      if (nrow(available) >= 2) {
+      # We want exactly 2 warmups 
+      if (nrow(available) >= 1) {
         available %>%
-          slice_sample(n = 2)
+          slice_sample(n = 1)
       } else {
         #print(df_warmups()) #debug
         # Take however many real stretches are available
@@ -190,19 +190,27 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows()%>% select(exercise, target_muscle, equipment, force, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows()%>% select(exercise, image, target_muscle, equipment, force, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
   output$warmups_table <- DT::renderDT({
     workout_warmups() %>%
       mutate(
+        img = ifelse(
+          !is.na(image) & image != "",
+          sprintf(
+            '<img src="%s" height="60" style="max-width:90px; object-fit:contain;">',
+            image
+          ),
+          ""
+        ),
         exercise = sprintf(
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
         )
-      ) %>%
-      select(-notion_url) %>%
+      ) %>% relocate(img, .after = exercise) %>%
+      select(-notion_url,-image) %>%
       DT::datatable(
         escape = FALSE
       ) 
@@ -211,13 +219,21 @@ server <- function(input, output, session){
   output$stretches_table <- DT::renderDT({
     workout_stretches() %>%
       mutate(
+        img = ifelse(
+          !is.na(image) & image != "",
+          sprintf(
+            '<img src="%s" height="60" style="max-width:90px; object-fit:contain;">',
+            image
+          ),
+          ""
+        ),
         exercise = sprintf(
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
         )
-      ) %>%
-      select(-notion_url) %>%
+      ) %>% relocate(img, .after = exercise) %>%
+      select(-notion_url,-image) %>%
       DT::datatable(
         escape = FALSE
       ) 
@@ -226,20 +242,29 @@ server <- function(input, output, session){
   output$workout_table <- DT::renderDT({
       workout_db()  %>%
       mutate(
+        img = ifelse(
+          !is.na(image) & image != "",
+          sprintf(
+            '<img src="%s" height="60" style="max-width:90px; object-fit:contain;">',
+            image
+          ),
+          ""
+        ),
+        
         exercise = sprintf(
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
         )
-      ) %>%
-      select(-notion_url) %>%
+      ) %>% relocate(img, .after = exercise) %>%
+      select(-notion_url,-image) %>%
       DT::datatable(
         escape = FALSE
       )
     })
   
   output$debug_exercises <- renderTable({
-    df_all_exercises() %>% select(exercise,type, equipment, mechanics, target_muscle, enjoyment, muscle_group, notion_url)
+    df_all_exercises() %>% select(exercise,image,type, equipment, mechanics, target_muscle, enjoyment, muscle_group, notion_url)
   })
   
   #download button
@@ -251,6 +276,14 @@ server <- function(input, output, session){
       
       df <- df %>%
         mutate(
+          img = ifelse(
+            !is.na(image) & image != "",
+            sprintf(
+              '<img src="%s" style="width:80px; max-height:80px; object-fit:contain;">',
+              htmltools::htmlEscape(image)
+            ),
+            ""
+          ),
           exercise = ifelse(
             !is.na(notion_url) & notion_url != "",
             sprintf(
@@ -260,8 +293,8 @@ server <- function(input, output, session){
             ),
             htmltools::htmlEscape(exercise)
           )
-        ) %>%
-        select(-notion_url)
+        ) %>% relocate(img, .after = exercise) %>%
+        select(-notion_url,-image)
     }
     
     # Convert the data frame into an HTML table.
@@ -383,20 +416,27 @@ server <- function(input, output, session){
           htmltools::tags$p(
             format(Sys.Date(), "%A, %d %B %Y")
           ),
+          
+          
           make_html_table(
             warmups,
             "Warmups"
           ),
+          htmltools::tags$p("6 reps each side or 10 reps"),
           
           make_html_table(
             workout,
             "Workout"
           ),
+          htmltools::tags$p("3 × 8–12 reps (use enough weight that you reach your limit)"),
+          
           
           make_html_table(
             stretches,
             "Stretches"
-          )
+          ),
+          htmltools::tags$p("3 times each side / hold 5 times for 15 seconds")
+          
         )
       )
       
