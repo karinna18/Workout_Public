@@ -94,7 +94,7 @@ server <- function(input, output, session){
     workout = input$workout,
     exploration = input$exploration
   
-  ) %>% select(exercise, image,  target_muscle, equipment, mechanics, weight, enjoyment,  notion_url)}
+  ) %>% select(exercise, image,  target_muscle, equipment, mechanics, weight, enjoyment, link, notion_url)}
   )
   
   workout_stretches <- reactive({
@@ -141,7 +141,7 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows() %>% select(exercise,image, target_muscle, equipment, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows() %>% select(exercise,image, target_muscle, equipment, enjoyment, link, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
   workout_warmups <- reactive({
@@ -190,7 +190,7 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows()%>% select(exercise, image, target_muscle, equipment, force, enjoyment, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows()%>% select(exercise, image, target_muscle, equipment, force, enjoyment, link, notion_url) %>% distinct(exercise, .keep_all = TRUE)
   })
   
   output$warmups_table <- DT::renderDT({
@@ -208,9 +208,14 @@ server <- function(input, output, session){
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
+        ),
+        target_muscle = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          link,
+          target_muscle
         )
       ) %>% relocate(img, .after = exercise) %>%
-      select(-notion_url,-image) %>%
+      select(-notion_url,-image, -link) %>%
       DT::datatable(
         escape = FALSE
       ) 
@@ -231,9 +236,14 @@ server <- function(input, output, session){
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
+        ),
+        target_muscle = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          link,
+          target_muscle
         )
       ) %>% relocate(img, .after = exercise) %>%
-      select(-notion_url,-image) %>%
+      select(-notion_url,-image,-link) %>%
       DT::datatable(
         escape = FALSE
       ) 
@@ -255,9 +265,14 @@ server <- function(input, output, session){
           '<a href="%s" target="_blank">%s</a>',
           notion_url,
           exercise
+        ),
+        target_muscle = sprintf(
+          '<a href="%s" target="_blank">%s</a>',
+          link,
+          target_muscle
         )
       ) %>% relocate(img, .after = exercise) %>%
-      select(-notion_url,-image) %>%
+      select(-notion_url,-image,-link) %>%
       DT::datatable(
         escape = FALSE
       )
@@ -292,9 +307,18 @@ server <- function(input, output, session){
               htmltools::htmlEscape(exercise)
             ),
             htmltools::htmlEscape(exercise)
-          )
+          ),
+          target_muscle = ifelse(
+            !is.na(link) & link != "",
+            sprintf(
+              '<a href="%s" target="_blank">%s</a>',
+              link,
+              htmltools::htmlEscape(target_muscle)
+            ),
+            htmltools::htmlEscape(target_muscle)
+          ),
         ) %>% relocate(img, .after = exercise) %>%
-        select(-notion_url,-image)
+        select(-notion_url,-image,-link)
     }
     
     # Convert the data frame into an HTML table.

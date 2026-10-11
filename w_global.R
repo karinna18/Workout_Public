@@ -313,7 +313,7 @@ exercises <<- all_data$exercises %>%
     })
     
   ) %>%
-  select(exercise, type, equipment, mechanics, level, force, target_muscle, secondary_muscles, enjoyment, weight, notion_url, image) %>% 
+  select(exercise, type, equipment, mechanics, level, force, target_muscle, secondary_muscles, enjoyment, weight, notion_url, image, link) %>% 
     separate_rows(target_muscle, sep = ",\\s*") %>% left_join(muscles, by = join_by(target_muscle == muscle)) %>%
   mutate(
     level = as.numeric(trimws(sub("-.*", "", level)))
