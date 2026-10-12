@@ -6,7 +6,7 @@ apply_filters <- function(df, input, exi){
     df <- df %>% filter(equipment %in% c("Dumbell", "Bodyweight", "Plate"))
   }
   if(input$place == "gym" & exi==TRUE) {
-    df <- df %>% filter(!(type %in% c("Strength","Plyometrics") & equipment %in% c("Dumbell", "Bodyweight")))
+    df <- df %>% filter(!(type %in% c("Strength") & equipment %in% c("Dumbell", "Bodyweight")))
   }
   df
 }
@@ -161,7 +161,7 @@ generate_workout <- function(df_active_muscles, df_exercises, workout, explorati
   # --------------------------------------------------
   selected_muscles <- character()
   # We need to select 2 muscles for this part of the workout.
-  for (i in 1:2) {
+  for (i in 1:3) {
     
     # Randomly decide which priority this slot should come from.
     chosen_priority <- sample(c(1, 2), size = 1, prob = c(0.35, 0.65))

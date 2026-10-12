@@ -103,6 +103,12 @@ server <- function(input, output, session){
       na.omit()
     
     lapply(targeted_muscles, function(muscle) {
+      
+      priority <- df_active_muscles() %>%
+        filter(muscle == !!muscle) %>%
+        pull(personal_priority)
+      n_stretches <- if (priority[1] == 3) 1 else 2
+      
       # Find stretches that target this muscle
       available <- df_stretches() %>%
         filter(target_muscle == muscle)
@@ -121,9 +127,9 @@ server <- function(input, output, session){
       }
       
       # We want exactly 2 stretches.
-      if (nrow(available) >= 2) {
+      if (nrow(available) >= n_stretches) {
         available %>%
-          slice_sample(n = 2)
+          slice_sample(n = n_stretches)
       } else {
         # Take however many real stretches are available
         real_stretches <- available
@@ -139,7 +145,12 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows() %>% select(exercise,image, target_muscle, equipment, enjoyment, link, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows() %>% select(exercise,image, target_muscle, equipment, enjoyment, link, notion_url) %>% group_by(exercise) %>%
+      summarise(
+        across(-target_muscle, first),
+        target_muscle = paste(unique(target_muscle), collapse = ", "),
+        .groups = "drop"
+      )
   })
   
   workout_warmups <- reactive({
@@ -150,7 +161,14 @@ server <- function(input, output, session){
       na.omit()
     
     lapply(targeted_muscles, function(muscle) {
+      
+      priority <- df_active_muscles() %>%
+        filter(muscle == !!muscle) %>%
+        pull(personal_priority)
+      n_warmups <- if (priority[1] == 1) 2 else 1
+      
       # Find stretches that target this muscle
+      
       available <- df_warmups() %>%
         filter(target_muscle == muscle)
       
@@ -168,9 +186,9 @@ server <- function(input, output, session){
       }
       
       # We want exactly 2 warmups 
-      if (nrow(available) >= 1) {
+      if (nrow(available) >= n_warmups) {
         available %>%
-          slice_sample(n = 1)
+          slice_sample(n = n_warmups)
       } else {
         #print(df_warmups()) #debug
         # Take however many real stretches are available
@@ -188,7 +206,13 @@ server <- function(input, output, session){
         )
       }
     }) %>%
-      bind_rows()%>% select(exercise, image, target_muscle, equipment, force, enjoyment, link, notion_url) %>% distinct(exercise, .keep_all = TRUE)
+      bind_rows()%>% select(exercise, image, target_muscle, equipment, force, enjoyment, link, notion_url) %>% 
+      group_by(exercise) %>%
+      summarise(
+        across(-target_muscle, first),
+        target_muscle = paste(unique(target_muscle), collapse = ", "),
+        .groups = "drop"
+      )
   })
   
   output$warmups_table <- DT::renderDT({
