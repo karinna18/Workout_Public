@@ -37,13 +37,11 @@ ui <- fluidPage(
     "Saturday"  = "Legs & Butt",
     "Sunday"    = "Arms & Chest"
   ),
-  
+  div(style = "display: flex; gap: 15px;",
   selectInput("workout", "Workout", choices = c("Arms & Chest", "Back & Shoulders", "Legs & Butt", "Core"), selected = default_workout),
-  br(),
   selectInput("place", "Place", choices = c("home", "gym")),
-  br(),
   selectInput("exploration", "Exploration", choices = c("yes", "neutral", "no"), selected ="neutral"),
-  br(),
+  ),
   downloadButton(
     "download_workout",
     "Save workout"
