@@ -1,6 +1,7 @@
 apply_filters <- function(df, input, exi){
-  workout_groups <- trimws(strsplit(input$workout, "&")[[1]]) 
-  df <- df %>% filter(muscle_group %in% workout_groups)
+  #workout_groups <- trimws(strsplit(input$workout, "&")[[1]]) 
+  #df <- df %>% filter(muscle_group %in% workout_groups)
+  df <- df %>% filter(day == input$workout)
   
   if(input$place == "home" & exi == TRUE) {
     df <- df %>% filter(equipment %in% c("Dumbell", "Bodyweight", "Plate"))

@@ -286,7 +286,7 @@ muscle_lookup <- all_data$muscles %>% select(id, muscle) %>% deframe()
 
 # Final Dataframes for app.R
 muscles <<- all_data$muscles %>%
-  select(muscle, `muscle group`, `personal priority`, skill) %>%
+  select(muscle, `muscle group`, `personal priority`, skill, day) %>%
   rename(muscle_group = `muscle group`, personal_priority = `personal priority`) %>%
   mutate(skill = as.numeric(trimws(sub("-.*", "", skill))),
          personal_priority = as.numeric(trimws(sub("-.*", "", personal_priority)))

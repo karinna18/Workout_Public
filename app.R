@@ -24,22 +24,21 @@ options(
   shiny.fullstacktrace = TRUE
 )
 
-
 ui <- fluidPage(
   theme = bslib::bs_theme(bootswatch = "lux"),
   default_workout <- switch(
     weekdays(Sys.Date()),
-    "Monday"    = "Legs & Butt",
-    "Tuesday"   = "Abs & Hip flexors",
-    "Wednesday" = "Legs & Butt",
-    "Thursday"  = "Back & Shoulders",
-    "Friday"    = "Abs & Hip flexors",
-    "Saturday"  = "Legs & Butt",
-    "Sunday"    = "Arms & Chest"
+    "Monday"    = "Front Leg",
+    "Tuesday"   = "Pull Day",
+    "Wednesday" = "Back Leg",
+    "Thursday"  = "Front Leg",
+    "Friday"    = "Pull Day",
+    "Saturday"  = "Back Leg",
+    "Sunday"    = "Push Day"
   ),
   div(style = "display: flex; gap: 15px;",
-  selectInput("workout", "Workout", choices = c("Arms & Chest", "Back & Shoulders", "Legs & Butt", "Core"), selected = default_workout),
-  selectInput("place", "Place", choices = c("home", "gym")),
+  selectInput("workout", "Workout", choices = c("Front Leg", "Back Leg", "Pull Day", "Push Day"), selected = default_workout),
+  selectInput("place", "Place", choices = c("gym","home")),
   selectInput("exploration", "Exploration", choices = c("yes", "neutral", "no"), selected ="neutral"),
   ),
   downloadButton(
