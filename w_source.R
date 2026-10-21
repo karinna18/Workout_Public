@@ -218,8 +218,8 @@ generate_workout <- function(df_active_muscles, df_exercises, workout, explorati
   # --------------------------------------------------
   
   special_workout <- workout %in% c(
-    "Arms & Chest",
-    "Back & Shoulders"
+    "Pull day",
+    "Push day"
   )
   
   add_cardio <- special_workout && runif(1) < 0.5
